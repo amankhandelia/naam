@@ -12,7 +12,7 @@ num_devices = jax.device_count()
 
 # caution: extremely buggy implementation of MLP with jax along with pmap to be used on TPU(s)
 # known bugs:
-#   1. pmap used for weight init is incorrect as different params generated for each device
+#   1. accuracy is not working as the params are replicated across devices, will need to use treemap to fix it.
 
 # Define MLP
 def mlp(params, x):
@@ -51,7 +51,13 @@ def accuracy(params, batch):
 
 # Update step
 def update(params, batch, lr):
+    # calculate the gradient indenpendently across each device
     grads = grad(loss)(params, batch)
+
+    # synchronize the gradients
+    grads = jax.lax.pmean(grads, axis_name="batch")
+
+    # update params
     return [(W - lr * dW, b - lr * db) for (W, b), (dW, db) in zip(params, grads)]
 
 
