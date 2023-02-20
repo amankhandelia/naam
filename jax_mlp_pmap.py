@@ -38,7 +38,8 @@ def init_params(layer_sizes, key):
 def loss(params, batch):
     x, y = batch
     logits = mlp(params, x)
-    return -jnp.mean(jnp.sum(jax.nn.log_softmax(logits) * y, axis=1))
+    loss = -jnp.mean(jnp.sum(jax.nn.log_softmax(logits) * y, axis=1))
+    return jax.lax.pmean(loss, axis_name="batch")
 
 
 # Define accuracy function
@@ -68,7 +69,7 @@ def train(params, data, epochs, batch_size, lr):
             y = jnp.reshape(y, (num_devices, -1, *y.shape[1:]))
             batch_ = (x, y)
             params = pmap(lambda p, b: update(p, b, lr), axis_name="batch")(params, batch_)
-            epoch_loss += jnp.mean(pmap(lambda p, b: loss(p, b))(params, batch_))
+            epoch_loss += jnp.mean(pmap(lambda p, b: loss(p, b), axis_name="batch")(params, batch_))
 
         epoch_loss = epoch_loss / num_batches
         epoch_acc = accuracy(params, data)
