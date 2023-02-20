@@ -88,7 +88,10 @@ batch_size = 32
 learning_rate = 0.1 / num_devices
 
 # Initialize parameters
-params = pmap(lambda key: init_params(layer_sizes, key))(random.split(key, num_devices))
+params = init_params(layer_sizes, key)
+
+# Put initial params on each device
+params = jax.tree_map(lambda x: jax.device_put_replicated(x, jax.devices()), params)
 
 # Train the model
 params = train(params, train_data, epochs, batch_size, learning_rate)
