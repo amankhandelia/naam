@@ -10,9 +10,6 @@ initialise_tracking()
 key = random.PRNGKey(0)
 num_devices = jax.device_count()
 
-# caution: extremely buggy implementation of MLP with jax along with pmap to be used on TPU(s)
-# known bugs:
-#   1. accuracy is not working as the params are replicated across devices, will need to use treemap to fix it.
 
 # Define MLP
 def mlp(params, x):
@@ -78,7 +75,7 @@ def train(params, data, epochs, batch_size, lr):
             epoch_loss += jnp.mean(pmap(lambda p, b: loss(p, b), axis_name="batch")(params, batch_))
 
         epoch_loss = epoch_loss / num_batches
-        epoch_acc = accuracy(params, data)
+        epoch_acc = accuracy(jax.tree_map(lambda x: x[0], params), data)
         print(f"Epoch {epoch+1} - Loss: {epoch_loss:.3f}, Accuracy: {epoch_acc:.3f}")
     return params
 
@@ -103,5 +100,5 @@ params = jax.tree_map(lambda x: jax.device_put_replicated(x, jax.devices()), par
 params = train(params, train_data, epochs, batch_size, learning_rate)
 
 # Evaluate the model
-test_acc = accuracy(params, test_data)
+test_acc = accuracy(jax.tree_map(lambda x: x[0], params), test_data)
 print(f"Test Accuracy: {test_acc:.3f}")
