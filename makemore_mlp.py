@@ -109,10 +109,6 @@ device_count = jax.device_count()
 Xtr = np.array(Xtr)
 Ytr = np.array(Ytr)
 
-# Define the learning rate schedule
-lre = jnp.linspace(-3, 0, 1000)
-lrs = 10**lre
-
 # Define the lists to store the training statistics
 stepi = []
 lossi = []
